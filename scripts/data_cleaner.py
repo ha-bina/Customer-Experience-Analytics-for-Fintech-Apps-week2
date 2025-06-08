@@ -8,6 +8,38 @@ BANK_APPS = {
     "Bank of Abyssinia": "com.boa.boaMobileBanking", 
     "Dashen Bank": "com.dashen.dashensuperapp"
 }
+#Configurations
+REVIEWS_PER_APP = 400
+LANGUAGE = 'en'
+SORT = Sort.NEWEST
+DELAY = 2  # Avoid rate-limiting
+
+def fetch_reviews(app_id, app_name):
+    """Scrape reviews with error handling and progress tracking"""
+    reviews_data = []
+    continuation_token = None
+    
+    with tqdm(total=REVIEWS_PER_APP, desc=f"Scraping {app_name}") as pbar:
+        while len(reviews_data) < REVIEWS_PER_APP:
+            try:
+                batch, token = reviews(
+                    app_id,
+                    lang=LANGUAGE,
+                    sort=SORT,
+                    count=100,
+                    continuation_token=continuation_token
+                )
+                if not batch:
+                    break
+                reviews_data.extend(batch)
+                pbar.update(len(batch))
+                time.sleep(DELAY)
+                continuation_token = token
+            except Exception as e:
+                print(f"Error: {e}")
+                break
+    return reviews_data[:REVIEWS_PER_APP]
+
 def clean_data(df):
     """Data cleaning pipeline"""
     # Handle duplicates
@@ -21,14 +53,6 @@ def clean_data(df):
     df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
     
     return df
-
-def fetch_reviews(app_id, bank_name):
-    """
-    Placeholder for fetch_reviews function.
-    Replace this with actual implementation to fetch reviews from Google Play.
-    """
-    # Example: return an empty list for now
-    return []
 
 def main():
     all_reviews = []
