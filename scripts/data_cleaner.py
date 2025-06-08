@@ -1,162 +1,113 @@
 import pandas as pd
 from datetime import datetime
 
-def clean_review_data(input_file, output_file):
+def clean_reviews(input_file, output_file):
     """
-    Processes bank review data to include all banks and all dates,
-    with comprehensive cleaning and standardization.
+    Processes review data to:
+    - Remove duplicates
+    - Handle missing values
+    - Normalize dates
+    - Standardize output columns
     """
-    # Load the data with error handling
     try:
+        # Load data with flexible column matching
         df = pd.read_csv(input_file)
-        print(f"Loaded {len(df)} raw records from {input_file}")
+        print(f"Loaded {len(df)} records from {input_file}")
     except Exception as e:
         print(f"Error loading file: {e}")
         return
 
-    # Standardize column names (case insensitive)
-col_mapping = {
-    'review': ['review', 'text', 'comment', 'content', 'feedback'],
-    'rating': ['rating', 'score', 'stars', 'rating_score'],
-    'date': ['date', 'review_date', 'time', 'timestamp'],
-    'bank': ['bank', 'bank_name', 'app', 'application']
-}
-
-for standard_name, variants in col_mapping.items():
-    for variant in variants:
-        if variant.lower() in [col.lower() for col in df.columns]:
-            if standard_name not in df.columns:
-                df.rename(columns={variant: standard_name}, inplace=True)
-            break
-    if standard_name not in df.columns:
-        df[standard_name] = pd.NA
-
-# Ensure source column exists
-if 'source' not in df.columns:
-    df['source'] = 'Google Play'
-
-# Calculate date range after loading and cleaning columns
-start_date = pd.to_datetime(df['date'], errors='coerce').min()
-end_date = pd.to_datetime(df['date'], errors='coerce').max()
-
-if pd.notnull(start_date) and pd.notnull(end_date):
-    days = (end_date - start_date).days
-else:
-    days = None
-
-# Data cleaning transformations
-def transform_data(df):
-    # Handle duplicates - keep first occurrence
-    df = df.drop_duplicates(subset=['review'], keep='first')
-    # Clean review text
-    df['review'] = df['review'].fillna('(No text)').str.strip()
-    
-    # Clean and standardize ratings (1-5)
-    df['rating'] = (
-        pd.to_numeric(df['rating'], errors='coerce')
-        .clip(1, 5)
-        .fillna(0)
-        .astype(int)
-    )
-    
-    # Normalize dates (handle multiple formats)
-    df['date'] = pd.to_datetime(
-        df['date'],
-        errors='coerce',
-        format='mixed'
-    ).dt.strftime('%Y-%m-%d')
-    
-    # Standardize bank names
-    bank_mapping = {
-        'cbe': 'CBE',
-        'com.cbe.': 'CBE',
-        'bank of abyssinia': 'BOA',
-        'boa': 'BOA',
-        'dashen': 'Dashen'
+    # Standardize column names
+    col_map = {
+        'app name': ['app name', 'app', 'application', 'bank'],
+        'review text': ['review text', 'review', 'text', 'comment'],
+        'review date': ['review date', 'date', 'timestamp'],
+        'rating': ['rating', 'score', 'stars']
     }
-    df['bank'] = (
-        df['bank'].str.lower().str.strip()
-        .replace(bank_mapping)
-        .str.upper()
-    )
-    
-    return df
 
-# Apply cleaning
-cleaned_df = transform_data(df)
+    for standard_name, variants in col_map.items():
+        for variant in variants:
+            if variant.lower() in [col.lower() for col in df.columns]:
+                if standard_name not in df.columns:
+                    df.rename(columns={variant: standard_name}, inplace=True)
+                break
+        if standard_name not in df.columns:
+            df[standard_name] = pd.NA
 
-# Filter to only include valid data
-valid_df = cleaned_df[
-    (cleaned_df['bank'].notna()) &
-    (cleaned_df['date'].notna())
-].copy()
+    # Data cleaning pipeline
+    def clean_data(df):
+        # Remove exact duplicate reviews
+        df = df.drop_duplicates(subset=['review text'], keep='first')
+        
+        # Handle missing values
+        df['review text'] = df['review text'].fillna('(No review text)')
+        df['rating'] = pd.to_numeric(df['rating'], errors='coerce').fillna(0).astype(int)
+        
+        # Normalize dates to YYYY-MM-DD
+        df['review date'] = pd.to_datetime(
+            df['review date'],
+            errors='coerce',
+            format='mixed'
+        ).dt.strftime('%Y-%m-%d')
+        
+        # Clean app names
+        df['app name'] = df['app name'].str.strip().str.title()
+        
+        return df
 
-# Save all valid records
-try:
-    valid_df.to_csv(output_file, index=False, columns=[
-        'review', 'rating', 'date', 'bank', 'source'
-    ])
-    print(f"Saved {len(valid_df)} cleaned records to {output_file}")
-except Exception as e:
-    print(f"Error saving file: {e}")
+    cleaned_df = clean_data(df)
 
-# Generate comprehensive summary
-def generate_report(df):
-    report = {
-        'total_reviews': len(df),
-        'banks': sorted(df['bank'].unique()),
-        'date_range': {
-            'start': df['date'].min(),
-            'end': df['date'].max(),
-            'days': (datetime.strptime(df['date'].max(), '%Y-%m-%d') - 
-                    datetime.strptime(df['date'].min(), '%Y-%m-%d')).days
-        },
-        'reviews_by_bank': df['bank'].value_counts().to_dict(),
-        'rating_distribution': df['rating'].value_counts().sort_index().to_dict(),
-        'missing_data': {
-            'reviews': sum(df['review'] == '(No text)'),
-            'ratings': sum(df['rating'] == 0),
-            'banks': sum(df['bank'].isna()),
-            'dates': sum(df['date'].isna())
+    # Filter to only keep records with valid dates and app names
+    final_df = cleaned_df[
+        (cleaned_df['review date'].notna()) &
+        (cleaned_df['app name'].notna())
+    ].copy()
+
+    # Save to CSV with specified columns
+    try:
+        final_df.to_csv(
+            output_file,
+            index=False,
+            columns=['app_name', 'review_text', 'review_date', 'rating']
+        )
+        print(f"Saved {len(final_df)} cleaned records to {output_file}")
+    except Exception as e:
+        print(f"Error saving file: {e}")
+        return
+
+    # Generate summary report
+    def generate_summary(df):
+        return {
+            'total_reviews': len(df),
+            'apps': sorted(df['app name'].unique()),
+            'date_range': f"{df['review date'].min()} to {df['review date'].max()}",
+            'rating_stats': df['rating'].value_counts().sort_index().to_dict(),
+            'missing_data': {
+                'reviews': sum(df['review text'] == '(No review text)'),
+                'ratings': sum(df['rating'] == 0)
+            }
         }
-    }
-    return report
 
-report = generate_report(valid_df)
-
-print("\n=== DATA REPORT ===")
-print(f"Total Valid Reviews: {report['total_reviews']}")
-print(f"Banks Included: {', '.join(report['banks'])}")
-print(f"Date Range: {report['date_range']['start']} to {report['date_range']['end']} ({report['date_range']['days']} days)")
-
-print("\nReviews by Bank:")
-for bank, count in report['reviews_by_bank'].items():
-    print(f"- {bank}: {count} reviews")
-
-print("\nRating Distribution:")
-for rating, count in report['rating_distribution'].items():
-    print(f"- {rating}-star: {count}")
-
-print("\nMissing Data Handling:")
-print(f"- Empty reviews: {report['missing_data']['reviews']}")
-print(f"- Zero ratings: {report['missing_data']['ratings']}")
-print(f"- Missing banks: {report['missing_data']['banks']}")
-print(f"- Invalid dates: {report['missing_data']['dates']}")
+    report = generate_summary(final_df)
+    
+    print("\n=== CLEANING REPORT ===")
+    print(f"Final Review Count: {report['total_reviews']}")
+    print(f"Apps Included: {', '.join(report['apps'])}")
+    print(f"Date Range: {report['date_range']}")
+    print("\nRating Distribution:")
+    for rating, count in report['rating_stats'].items():
+        print(f"- {rating}-star: {count}")
+    print(f"\nMissing Data:")
+    print(f"- Empty reviews: {report['missing_data']['reviews']}")
+    print(f"- Zero ratings: {report['missing_data']['ratings']}")
 
 def main():
-    # Configuration
-    INPUT_CSV = "Ethiopian_bank_reviews.csv"  # Your input file
-    OUTPUT_CSV = "Ethiopian_bank_reviews_cleaned.csv"  # Output file
+    INPUT_FILE = "raw_reviews.csv"  # Change to your input file
+    OUTPUT_FILE = "cleaned_reviews.csv"  # Output filename
     
-    print("Starting comprehensive data processing...")
-    clean_review_data(INPUT_CSV, OUTPUT_CSV)
-    print("\nProcessing complete! Check the output file and report.")
-    try:
-        df = pd.read_csv(OUTPUT_CSV)
-        print(f"Loaded {len(df)} raw records from {OUTPUT_CSV}")
-        print(f"Data shape: {df.shape[0]} rows, {df.shape[1]} columns")
-    except Exception as e:
-        print(f"Error loading file: {e}")
+    print("Starting data cleaning process...")
+    clean_reviews(INPUT_FILE, OUTPUT_FILE)
+    print("\nProcess completed successfully!")
 
 if __name__ == "__main__":
     main()
