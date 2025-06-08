@@ -12,7 +12,11 @@ BANK_APPS = {
     "Bank of Abyssinia": "https://play.google.com/store/apps/details?id=com.boa.boaMobileBanking&hl=en", 
     "Dashen Bank": "https://play.google.com/store/apps/details?id=com.dashen.dashensuperapp&hl=en"
 }
-
+# Safe access to 'date' key:
+date_value = item.get('date')
+if date_value is None:
+    # Handle missing date, e.g., skip or set a default value
+    date_value = 'unknown'  # or continue, or log a warning
 # Configuration
 REVIEWS_PER_APP = 400  # Target number of reviews per app
 LANGUAGE = 'en'        # English reviews
@@ -73,7 +77,7 @@ def format_review_data(reviews_list, app_name):
         formatted.append({
             'app_name': app_name,
             'review_text': review.get('content', ''),
-            'date': review_date,  # Extract just the date portion
+            'review_date': review_date,  # Extract just the date portion
             'rating': review.get('score', None)
         })
     return formatted
@@ -104,7 +108,7 @@ def main():
     df = pd.DataFrame(all_reviews)
     
     # Ensure proper date formatting, handle invalid dates gracefully
-    df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.strftime('%Y-%m-%d')
+    df['review_date'] = pd.to_datetime(df['review_date'], errors='coerce').dt.strftime('%Y-%m-%d')
     
     # Save to CSV
     timestamp = pd.Timestamp.now().strftime("%Y%m%d")
