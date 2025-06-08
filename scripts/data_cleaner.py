@@ -51,7 +51,7 @@ def clean_reviews(input_file, output_file):
         ).dt.strftime('%Y-%m-%d')
         
         # Clean app names
-        df['app name'] = df['app name'].str.strip().str.title()
+        df['app_name'] = df['app_name'].str.strip().str.title()
         
         return df
 
@@ -59,8 +59,8 @@ def clean_reviews(input_file, output_file):
 
     # Filter to only keep records with valid dates and app names
     final_df = cleaned_df[
-        (cleaned_df['review date'].notna()) &
-        (cleaned_df['app name'].notna())
+        (cleaned_df['review_date'].notna()) &
+        (cleaned_df['app_name'].notna())
     ].copy()
 
     # Save to CSV with specified columns
@@ -102,7 +102,7 @@ def clean_reviews(input_file, output_file):
     print(f"- Zero ratings: {report['missing_data']['ratings']}")
 
 def main():
-    INPUT_FILE = "raw_reviews.csv"  # Change to your input file
+    INPUT_FILE = "Ethiopian_bank_reviews.csv"  # Change to your input file
     OUTPUT_FILE = "cleaned_reviews.csv"  # Output filename
     
     print("Starting data cleaning process...")
