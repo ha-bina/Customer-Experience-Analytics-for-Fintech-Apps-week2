@@ -1,5 +1,5 @@
 import pandas as pd
-import datetime
+from datetime import datetime
 
 def clean_review_data(input_file, output_file):
     """
@@ -93,7 +93,29 @@ def clean_review_data(input_file, output_file):
         print(f"Error saving file: {e}")
         return
 
-    #    report = generate_report(valid_df)
+    # Generate comprehensive summary
+    def generate_report(df):
+        report = {
+            'total_reviews': len(df),
+            'banks': sorted(df['bank'].unique()),
+            'date_range': {
+                'start': df['date'].min(),
+                'end': df['date'].max(),
+                'days': (datetime.strptime(df['date'].max(), '%Y-%m-%d') - 
+                        datetime.strptime(df['date'].min(), '%Y-%m-%d')).days
+            },
+            'reviews_by_bank': df['bank'].value_counts().to_dict(),
+            'rating_distribution': df['rating'].value_counts().sort_index().to_dict(),
+            'missing_data': {
+                'reviews': sum(df['review'] == '(No text)'),
+                'ratings': sum(df['rating'] == 0),
+                'banks': sum(df['bank'].isna()),
+                'dates': sum(df['date'].isna())
+            }
+        }
+        return report
+
+    report = generate_report(valid_df)
     
     print("\n=== DATA REPORT ===")
     print(f"Total Valid Reviews: {report['total_reviews']}")
@@ -116,8 +138,8 @@ def clean_review_data(input_file, output_file):
 
 def main():
     # Configuration
-    INPUT_CSV = "Ethiopian_bank_reviews.csv"  # Your input file
-    OUTPUT_CSV = "Ethiopian_bank_reviews_reviews.csv"  # Output file
+    INPUT_CSV = "raw_bank_reviews.csv"  # Your input file
+    OUTPUT_CSV = "all_banks_all_dates_reviews.csv"  # Output file
     
     print("Starting comprehensive data processing...")
     clean_review_data(INPUT_CSV, OUTPUT_CSV)
