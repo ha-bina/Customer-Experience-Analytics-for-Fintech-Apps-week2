@@ -138,12 +138,18 @@ def clean_review_data(input_file, output_file):
 
 def main():
     # Configuration
-    INPUT_CSV = "raw_bank_reviews.csv"  # Your input file
-    OUTPUT_CSV = "all_banks_all_dates_reviews.csv"  # Output file
+    INPUT_CSV = "Ethiopian_bank_reviews.csv"  # Your input file
+    OUTPUT_CSV = "Ethiopian_bank_reviews_cleaned.csv"  # Output file
     
     print("Starting comprehensive data processing...")
     clean_review_data(INPUT_CSV, OUTPUT_CSV)
     print("\nProcessing complete! Check the output file and report.")
+    try:
+        df = pd.read_csv(OUTPUT_CSV)
+        print(f"Loaded {len(df)} raw records from {OUTPUT_CSV}")
+        print(f"Data shape: {df.shape[0]} rows, {df.shape[1]} columns")
+    except Exception as e:
+        print(f"Error loading file: {e}")
 
 if __name__ == "__main__":
     main()
