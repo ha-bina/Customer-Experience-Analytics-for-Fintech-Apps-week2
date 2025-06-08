@@ -8,15 +8,11 @@ from tqdm import tqdm
 import os
 # Ethiopian bank apps to scrape
 BANK_APPS = {
-    "Commercial Bank of Ethiopia": "https://play.google.com/store/apps/details?id=com.combanketh.mobilebanking&hl=en",
-    "Bank of Abyssinia": "https://play.google.com/store/apps/details?id=com.boa.boaMobileBanking&hl=en", 
-    "Dashen Bank": "https://play.google.com/store/apps/details?id=com.dashen.dashensuperapp&hl=en"
+    "Commercial Bank of Ethiopia": "https://play.google.com/store/search?q=commercial+bank+mobile+banking+app&c=apps",
+    "Bank of Abyssinia": "https://play.google.com/store/search?q=bank+of+abyssinia+mobile+banking+app&c=apps", 
+    "Dashen Bank": "https://play.google.com/store/apps/details?id=com.dashen.dashensuperapp"
 }
-# Safe access to 'date' key:
-date_value = item.get('date')
-if date_value is None:
-    # Handle missing date, e.g., skip or set a default value
-    date_value = 'unknown'  # or continue, or log a warning
+# (Removed unused code that referenced undefined 'item')
 # Configuration
 REVIEWS_PER_APP = 400  # Target number of reviews per app
 LANGUAGE = 'en'        # English reviews
