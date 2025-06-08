@@ -1,92 +1,118 @@
 import pandas as pd
-import time
-from tqdm import tqdm
-import os
-# Ethiopian bank apps to scrape
-BANK_APPS = {
-    "Commercial Bank of Ethiopia": "com.combanketh.mobilebanking",
-    "Bank of Abyssinia": "com.boa.boaMobileBanking", 
-    "Dashen Bank": "com.dashen.dashensuperapp"
-}
-#Configurations
-REVIEWS_PER_APP = 400
-LANGUAGE = 'en'
-SORT = Sort.NEWEST
-DELAY = 2  # Avoid rate-limiting
-
-def fetch_reviews(app_id, app_name):
-    """Scrape reviews with error handling and progress tracking"""
-    reviews_data = []
-    continuation_token = None
+def clean_review_data(input_file, output_file):
+    """
+    Cleans and standardizes bank review data from a CSV file.
     
-    with tqdm(total=REVIEWS_PER_APP, desc=f"Scraping {app_name}") as pbar:
-        while len(reviews_data) < REVIEWS_PER_APP:
-            try:
-                batch, token = reviews(
-                    app_id,
-                    lang=LANGUAGE,
-                    sort=SORT,
-                    count=100,
-                    continuation_token=continuation_token
-                )
-                if not batch:
-                    break
-                reviews_data.extend(batch)
-                pbar.update(len(batch))
-                time.sleep(DELAY)
-                continuation_token = token
-            except Exception as e:
-                print(f"Error: {e}")
+    Args:
+        input_file (str): Path to raw CSV file
+        output_file (str): Path to save cleaned CSV
+    """
+    # Load the raw data
+    try:
+        df = pd.read_csv(input_file)
+        print(f"Successfully loaded {len(df)} raw records from {input_file}")
+    except FileNotFoundError:
+        print(f"Error: File '{input_file}' not found.")
+        return
+    except Exception as e:
+        print(f"Error loading CSV: {e}")
+        return
+
+    # Standardize column names (case-insensitive)
+    column_mapping = {
+        'review': ['review', 'text', 'comment', 'content'],
+        'rating': ['rating', 'score', 'stars'],
+        'date': ['date', 'review_date', 'timestamp'],
+        'bank': ['bank', 'bank_name', 'app']
+    }
+    
+    # Map columns to standard names
+    for standard_name, alternatives in column_mapping.items():
+        for alt in alternatives:
+            if alt.lower() in [col.lower() for col in df.columns]:
+                if standard_name not in df.columns:
+                    df.rename(columns={alt: standard_name}, inplace=True)
                 break
-    return reviews_data[:REVIEWS_PER_APP]
 
-def clean_data(df):
-    """Data cleaning pipeline"""
-    # Handle duplicates
-    df = df.drop_duplicates(subset=['review'], keep='first')
+    # Ensure required columns exist
+    missing_cols = [col for col in ['review', 'rating', 'date', 'bank'] if col not in df.columns]
+    if missing_cols:
+        print(f"Warning: Missing columns {missing_cols}. Adding with default values.")
+        for col in missing_cols:
+            df[col] = pd.NA
+
+    # Add source if missing
+    if 'source' not in df.columns:
+        df['source'] = 'Google Play'
+
+    # Data cleaning pipeline
+    def clean_data(df):
+        # Remove duplicates
+        df = df.drop_duplicates(subset=['review'], keep='first')
+        
+        # Handle missing values
+        df['review'] = df['review'].fillna('(No text)')
+        df['rating'] = pd.to_numeric(df['rating'], errors='coerce').fillna(0).astype(int)
+        
+        # Normalize dates
+        df['date'] = pd.to_datetime(df['date'], errors='coerce').dt.strftime('%Y-%m-%d')
+        
+        # Clean bank names
+        if 'bank' in df.columns:
+            df['bank'] = df['bank'].str.strip().replace({
+                'cbe': 'CBE',
+                'boa': 'BOA',
+                'com.cbe.mobile.banking': 'CBE',
+                'com.bankofabyssinia.mobilebanking': 'BOA',
+                'com.dashen.mobilebanking': 'Dashen'
+            })
+        
+        return df
+
+    # Apply cleaning
+    cleaned_df = clean_data(df.copy())
     
-    # Handle missing data
-    df['review'] = df['review'].fillna('(No text)')
-    df['rating'] = df['rating'].fillna(0).astype(int)
+    # Save cleaned data
+    try:
+        cleaned_df.to_csv(output_file, index=False)
+        print(f"Successfully saved {len(cleaned_df)} cleaned records to {output_file}")
+    except Exception as e:
+        print(f"Error saving cleaned data: {e}")
+        return
+
+    # Generate and display summary
+    def generate_summary(df):
+        summary = {
+            'total_reviews': len(df),
+            'reviews_per_bank': df['bank'].value_counts().to_dict(),
+            'rating_distribution': df['rating'].value_counts().sort_index().to_dict(),
+            'date_range': {
+                'start': df['date'].min(),
+                'end': df['date'].max()
+            }
+        }
+        return summary
+
+    summary = generate_summary(cleaned_df)
     
-    # Normalize dates
-    df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
-    
-    return df
+    print("\n=== Data Cleaning Summary ===")
+    print(f"Total reviews after cleaning: {summary['total_reviews']}")
+    print("\nReviews per bank:")
+    for bank, count in summary['reviews_per_bank'].items():
+        print(f"- {bank}: {count}")
+    print("\nRating distribution:")
+    for rating, count in summary['rating_distribution'].items():
+        print(f"- {rating} star: {count}")
+    print(f"\nDate range: {summary['date_range']['start']} to {summary['date_range']['end']}")
 
 def main():
-    all_reviews = []
+    # Configure input and output files
+    input_csv = "Ethiopian_bank_reviews.csv"  # Change to your input file
+    output_csv = "cleaned_Ethiopian_bank_reviews.csv"  # Change to desired output file
     
-    for bank_name, app_id in BANK_APPS.items():
-        print(f"\nProcessing {bank_name}...")
-        
-        # Scrape reviews
-        raw_reviews = fetch_reviews(app_id, bank_name)
-        
-        # Structure data
-        for review in raw_reviews:
-            all_reviews.append({
-                'review': review.get('content', ''),
-                'rating': review.get('score', 0),
-                'date': review.get('at', pd.NaT),
-                'bank': bank_name,
-                'source': 'Google Play'
-            })
-    
-    # Create DataFrame and clean
-    df = pd.DataFrame(all_reviews)
-    df = clean_data(df)
-    
-    # Save to CSV
-    output_file = "bank_reviews_cleaned.csv"
-    df.to_csv(output_file, index=False)
-    print(f"\nSuccess! Saved {len(df)} reviews to {output_file}")
-    
-    # Show summary
-    print("\nData Overview:")
-    print(f"Total Reviews: {len(df)}")
-    print(f"Reviews per Bank:\n{df['bank'].value_counts()}")
-    print(f"Rating Distribution:\n{df['rating'].value_counts().sort_index()}")
+    print("Starting data cleaning process...")
+    clean_review_data(input_csv, output_csv)
+    print("\nData cleaning complete!")
 
 if __name__ == "__main__":
     main()
