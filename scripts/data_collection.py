@@ -8,9 +8,9 @@ from tqdm import tqdm
 import os
 # Ethiopian bank apps to scrape
 BANK_APPS = {
-    "Commercial Bank of Ethiopia": "com.cbe.mobile.banking",
-    "Bank of Abyssinia": "com.bankofabyssinia.mobilebanking", 
-    "Dashen Bank": "com.dashen.mobilebanking"
+    "Commercial Bank of Ethiopia": "com.combanketh.mobilebanking",
+    "Bank of Abyssinia": "com.boa.boaMobileBanking", 
+    "Dashen Bank": "com.dashen.dashensuperapp"
 }
 # (Removed unused code that referenced undefined 'item')
 # Configuration
