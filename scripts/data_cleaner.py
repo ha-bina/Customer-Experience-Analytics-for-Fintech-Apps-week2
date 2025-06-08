@@ -41,7 +41,7 @@ def clean_review_data(input_file, output_file):
         df = df.drop_duplicates(subset=['review'], keep='first')
         
         # Clean review text
-        df['review'] = df['review'].fillna('(No text)').str.string()
+        df['review'] = df['review'].fillna('(No text)').str.strip()
         
         # Clean and standardize ratings (1-5)
         df['rating'] = (
