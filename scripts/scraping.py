@@ -1,6 +1,6 @@
-%pip install google-play-scraper
-%pip install tqdm
-%pip install pandas
+#%pip install google-play-scraper
+#%pip install tqdm
+#%pip install pandas
 from google_play_scraper import app, reviews, Sort
 import pandas as pd
 import time
@@ -122,3 +122,5 @@ def main():
     print(df['app_name'].value_counts())
     print("\n- Rating distribution:")
     print(df['rating'].value_counts().sort_index())
+    if __name__ == "__main__":
+        main()
