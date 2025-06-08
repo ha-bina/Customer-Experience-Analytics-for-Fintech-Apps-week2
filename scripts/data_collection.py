@@ -12,7 +12,11 @@ BANK_APPS = {
     "Bank of Abyssinia": "https://play.google.com/store/apps/details?id=com.boa.boaMobileBanking&hl=en", 
     "Dashen Bank": "https://play.google.com/store/apps/details?id=com.dashen.dashensuperapp&hl=en"
 }
-
+# Safe access to 'date' key:
+date_value = item.get('date')
+if date_value is None:
+    # Handle missing date, e.g., skip or set a default value
+    date_value = 'unknown'  # or continue, or log a warning
 # Configuration
 REVIEWS_PER_APP = 400  # Target number of reviews per app
 LANGUAGE = 'en'        # English reviews
