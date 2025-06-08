@@ -8,9 +8,9 @@ from tqdm import tqdm
 import os
 # Ethiopian bank apps to scrape
 BANK_APPS = {
-    "Commercial Bank of Ethiopia": "com.cbe.mobile.banking",
-    "Bank of Abyssinia": "com.bankofabyssinia.mobilebanking", 
-    "Dashen Bank": "com.dashen.mobilebanking"
+    "Commercial Bank of Ethiopia": "https://play.google.com/store/apps/details?id=com.combanketh.mobilebanking&hl=en",
+    "Bank of Abyssinia": "https://play.google.com/store/apps/details?id=com.boa.boaMobileBanking&hl=en", 
+    "Dashen Bank": "https://play.google.com/store/apps/details?id=com.dashen.dashensuperapp&hl=en"
 }
 
 # Configuration
