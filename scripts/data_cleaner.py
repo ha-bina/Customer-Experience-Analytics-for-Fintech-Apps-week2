@@ -13,14 +13,15 @@ def clean_csv(input_file, output_file):
     except Exception as e:
         print(f"Error reading CSV file: {e}")
         return
+    # Define pattern: only English letters (upper/lower) and spaces
+    english_pattern = re.compile(r'^[a-zA-Z\s]+$')
+
+    # Remove rows where review_text contains anything other than English letters and spaces
     if 'review_text' in df.columns:
-        # Keep only rows where review_text contains primarily English characters
-        # This regex allows basic English letters, numbers, and common punctuation
-        english_pattern = re.compile(r'^[a-zA-Z\s]+$')
-        
-        # Create a mask for rows with English text
-        english_mask = df['review_text'].apply(
-            lambda x: bool(english_pattern.match(str(x))) if not df['review_text'].empty else pd.Series([True]*len(df)))
+        # Remove line breaks and extra spaces
+        df['review_text'] = df['review_text'].astype(str).str.replace(r'[\n\r]', ' ', regex=True).str.strip()
+        mask = df['review_text'].apply(lambda x: bool(english_pattern.fullmatch(x)))
+        df = df[mask]
 
     # Handle missing data
     # Fill missing app_name with 'Unknown'
