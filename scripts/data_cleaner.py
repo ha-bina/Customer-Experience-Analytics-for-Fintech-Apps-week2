@@ -1,6 +1,7 @@
 
 import pandas as pd
 from datetime import datetime
+import re
 
 def clean_csv(input_file, output_file):
     # Read the CSV file
@@ -51,7 +52,14 @@ def clean_csv(input_file, output_file):
     
     # Create the output dataframe with only the desired columns
     cleaned_df = df[output_columns]
-    
+    if 'review_text' in df.columns:
+        # Keep only rows where review_text contains primarily English characters
+        # This regex allows basic English letters, numbers, and common punctuation
+        english_pattern = re.compile(r'^[a-zA-Z\s]+$')
+        
+        # Create a mask for rows with English text
+        english_mask = df['review_text'].apply(
+            lambda x: bool(english_pattern.match(str(x))) if not df['review_text'].empty else pd.Series([True]*len(df)))
     # Save to CSV
     try:
         cleaned_df.to_csv(output_file, index=False)
