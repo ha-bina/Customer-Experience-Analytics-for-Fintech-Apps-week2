@@ -91,6 +91,7 @@ def analyze_reviews(input_file, output_file):
     
     df[['sentiment_label', 'sentiment_score']] = df['review_text'].apply(
         lambda x: pd.Series(get_sentiment(str(x)))
+    )
     
     # Analyze by bank
     results = []
