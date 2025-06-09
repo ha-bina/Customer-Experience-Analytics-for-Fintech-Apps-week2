@@ -100,8 +100,8 @@ def analyze_reviews(input_file, output_file, sentiment_method='textblob'):
         
         return df, aggregated
     
-    except Exception as e:
-        print(f"Error processing data: {e}")
-        return None, None
+    #except Exception as e:
+        #print(f"Error processing data: {e}")
+        #return None, None
 
 # 
