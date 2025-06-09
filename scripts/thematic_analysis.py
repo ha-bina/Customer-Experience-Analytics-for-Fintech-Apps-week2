@@ -1,6 +1,7 @@
 import pandas as pd
 import re
 import spacy
+import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from collections import defaultdict
