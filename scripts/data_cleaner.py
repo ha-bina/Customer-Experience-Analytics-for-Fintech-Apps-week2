@@ -55,7 +55,7 @@ def clean_csv(input_file, output_file):
     if 'review_text' in df.columns:
         # Keep only rows where review_text contains primarily English characters
         # This regex allows basic English letters, numbers, and common punctuation
-        english_pattern = re.compile(r'^[a-zA-Z0-9\s\.,!?\'"-]+$')
+        english_pattern = re.compile(r'^[a-zA-Z\s]+$')
         
         # Create a mask for rows with English text
         english_mask = df['review_text'].apply(
