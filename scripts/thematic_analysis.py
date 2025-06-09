@@ -1,182 +1,155 @@
 import pandas as pd
-import sklearn
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import LatentDirichletAllocation
 import spacy
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.cluster import KMeans
 from collections import defaultdict
-import argparse
+import json
+from textblob import TextBlob
 
 # Load spaCy model
 nlp = spacy.load("en_core_web_sm")
 
-def extract_keywords(df, ngram_range=(1,3), max_features=100):
-    """Extract significant keywords and n-grams using TF-IDF"""
-    print("Extracting keywords using TF-IDF...")
+def preprocess_text(text):
+    """Tokenize, clean, and lemmatize text"""
+    if not isinstance(text, str):
+        return ""
     
-    # Preprocess text
-    def preprocess(text):
-        text = re.sub(r'[^a-zA-Z0-9\s]', '', str(text).lower())
-        return text
+    # Basic cleaning
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text.lower())
+    doc = nlp(text)
     
-    # Initialize TF-IDF vectorizer
+    # Lemmatization and stopword removal
+    tokens = [
+        token.lemma_.lower().strip() 
+        for token in doc 
+        if not token.is_stop 
+        and not token.is_punct 
+        and len(token.lemma_) > 2
+    ]
+    
+    return " ".join(tokens)
+
+def extract_keywords_tfidf(texts, ngram_range=(1,2), max_features=100):
+    """Extract keywords using TF-IDF"""
     tfidf = TfidfVectorizer(
         ngram_range=ngram_range,
         max_features=max_features,
-        stop_words='english',
-        preprocessor=preprocess
+        stop_words='english'
     )
+    tfidf_matrix = tfidf.fit_transform(texts)
+    return tfidf.get_feature_names_out()
+
+def extract_keywords_spacy(texts):
+    """Extract keywords using spaCy"""
+    keywords = set()
+    for doc in nlp.pipe(texts, disable=["parser", "ner"]):
+        for chunk in doc.noun_chunks:
+            keywords.add(chunk.text.lower())
+        for token in doc:
+            if token.pos_ in ['NOUN', 'VERB', 'ADJ'] and len(token.text) > 3:
+                keywords.add(token.lemma_.lower())
+    return list(keywords)
+
+def cluster_keywords(keywords, n_clusters=5):
+    """Cluster keywords into themes using K-means"""
+    if not keywords:
+        return {}
     
-    # Fit and transform
-    tfidf_matrix = tfidf.fit_transform(df['review_text'])
-    feature_names = tfidf.get_feature_names_out()
+    # Create TF-IDF representation of keywords
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform([" ".join(k.split()) for k in keywords])
     
-    # Get top keywords per bank
-    bank_keywords = {}
+    # Cluster keywords
+    kmeans = KMeans(n_clusters=min(n_clusters, len(keywords)), random_state=42)
+    kmeans.fit(X)
+    
+    # Organize keywords by cluster
+    clusters = defaultdict(list)
+    for keyword, label in zip(keywords, kmeans.labels_):
+        clusters[f"Theme_{label+1}"].append(keyword)
+    
+    return dict(clusters)
+
+def analyze_reviews(input_file, output_file):
+    """Main analysis function"""
+    # Read and preprocess data
+    df = pd.read_csv(input_file)
+    print(f"Loaded {len(df)} reviews")
+    
+    # Text preprocessing
+    df['processed_text'] = df['review_text'].apply(preprocess_text)
+    df = df[df['processed_text'].str.len() > 0]  # Remove empty texts
+    
+    # Sentiment analysis (using TextBlob as example)
+    def get_sentiment(text):
+        analysis = TextBlob(text)
+        polarity = analysis.sentiment.polarity
+        if polarity > 0.1: return ('POSITIVE', polarity)
+        elif polarity < -0.1: return ('NEGATIVE', polarity)
+        else: return ('NEUTRAL', polarity)
+    
+    df[['sentiment_label', 'sentiment_score']] = df['review_text'].apply(
+        lambda x: pd.Series(get_sentiment(str(x)))
+    
+    # Analyze by bank
+    results = []
+    theme_reports = {}
+    
     for bank in df['app_name'].unique():
-        bank_indices = df[df['app_name'] == bank].index
-        bank_matrix = tfidf_matrix[bank_indices]
-        bank_scores = bank_matrix.sum(axis=0).A1
-        top_indices = bank_scores.argsort()[::-1][:20]  # Top 20 per bank
-        bank_keywords[bank] = [feature_names[i] for i in top_indices]
-    
-    return bank_keywords
-
-def enhance_with_spacy(keywords_dict):
-    """Enhance keywords with spaCy noun phrases and named entities"""
-    print("Enhancing keywords with spaCy...")
-    
-    enhanced_keywords = {}
-    for bank, keywords in keywords_dict.items():
-        # Combine all keywords for this bank
-        combined_text = " ".join(keywords)
-        doc = nlp(combined_text)
+        bank_df = df[df['app_name'] == bank]
+        texts = bank_df['processed_text'].tolist()
         
-        # Extract noun phrases
-        noun_phrases = set([chunk.text.lower() for chunk in doc.noun_chunks])
+        # Extract keywords (using both methods)
+        tfidf_keywords = extract_keywords_tfidf(texts)
+        spacy_keywords = extract_keywords_spacy(texts)
+        all_keywords = list(set(tfidf_keywords) | set(spacy_keywords))
         
-        # Extract named entities
-        entities = set([ent.text.lower() for ent in doc.ents if ent.label_ in ['PRODUCT', 'ORG']])
+        # Cluster keywords into themes
+        themes = cluster_keywords(all_keywords, n_clusters=5)
+        theme_reports[bank] = themes
         
-        # Combine all
-        enhanced = set(keywords) | noun_phrases | entities
-        enhanced_keywords[bank] = list(enhanced)
-    
-    return enhanced_keywords
-
-def topic_modeling(df, n_topics=5):
-    """Apply LDA topic modeling to identify broader themes"""
-    print("Applying topic modeling...")
-    
-    # Initialize and fit LDA
-    tfidf = TfidfVectorizer(max_features=1000, stop_words='english')
-    tfidf_matrix = tfidf.fit_transform(df['review_text'])
-    
-    lda = LatentDirichletAllocation(
-        n_components=n_topics,
-        random_state=42,
-        learning_method='online'
-    )
-    lda.fit(tfidf_matrix)
-    
-    # Get top words for each topic
-    feature_names = tfidf.get_feature_names_out()
-    topics = {}
-    for topic_idx, topic in enumerate(lda.components_):
-        top_features = [feature_names[i] for i in topic.argsort()[:-10 - 1:-1]]
-        topics[f"Topic_{topic_idx}"] = top_features
-    
-    return topics
-
-def group_into_themes(keywords_dict, topics=None):
-    """Group keywords into overarching themes with documentation"""
-    print("Grouping keywords into themes...")
-    
-    # Define theme templates (can be customized)
-    theme_templates = {
-        'Account Access': ['login', 'password', 'account', 'access', 'authentic', 'security'],
-        'Transaction Issues': ['transfer', 'payment', 'transaction', 'failed', 'delay', 'process'],
-        'User Experience': ['app', 'interface', 'design', 'experience', 'navigation', 'ui'],
-        'Customer Support': ['support', 'service', 'response', 'representative', 'help', 'call'],
-        'Features': ['feature', 'request', 'functionality', 'update', 'version', 'tool']
-    }
-    
-    bank_themes = {}
-    for bank, keywords in keywords_dict.items():
-        theme_counts = {theme: 0 for theme in theme_templates}
-        theme_keywords = {theme: [] for theme in theme_templates}
+        # Map reviews to themes
+        def assign_theme(text):
+            doc = nlp(text.lower())
+            assigned = []
+            for theme, keywords in themes.items():
+                if any(keyword in text for keyword in keywords):
+                    assigned.append(theme)
+            return "|".join(assigned) if assigned else "General"
         
-        # Count matches with theme templates
-        for keyword in keywords:
-            for theme, markers in theme_templates.items():
-                if any(marker in keyword for marker in markers):
-                    theme_counts[theme] += 1
-                    theme_keywords[theme].append(keyword)
-        
-        # Select top 3-5 themes for this bank
-        top_themes = sorted(theme_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        bank_themes[bank] = {
-            'themes': [theme[0] for theme in top_themes],
-            'theme_keywords': {k: v for k, v in theme_keywords.items() if v},
-            'documentation': f"Themes for {bank} were determined by matching extracted keywords against common banking app categories. The top {len(top_themes)} themes were selected based on keyword frequency and relevance."
-        }
+        bank_df['themes'] = bank_df['review_text'].apply(assign_theme)
+        results.append(bank_df)
     
-    return bank_themes
-
-def analyze_themes(df):
-    """Complete thematic analysis workflow"""
-    # Step 1: Extract keywords
-    bank_keywords = extract_keywords(df)
+    # Combine all results
+    final_df = pd.concat(results)
     
-    # Step 2: Enhance with spaCy
-    enhanced_keywords = enhance_with_spacy(bank_keywords)
+    # Save outputs
+    final_df.to_csv(output_file, index=False)
     
-    # Step 3: Optional topic modeling
-    topics = topic_modeling(df) if len(df) > 100 else None
+    # Save theme reports
+    theme_file = output_file.replace('.csv', '_themes.json')
+    with open(theme_file, 'w') as f:
+        json.dump(theme_reports, f, indent=2)
     
-    # Step 4: Group into themes
-    bank_themes = group_into_themes(enhanced_keywords, topics)
+    print(f"\nResults saved to:")
+    print(f"- Processed reviews: {output_file}")
+    print(f"- Theme analysis: {theme_file}")
     
-    return bank_themes
-
-def main():
-    """Command-line interface for thematic analysis"""
-    parser = argparse.ArgumentParser(description='Thematic analysis of bank app reviews')
-    parser.add_argument('input_file', help='Path to cleaned CSV file with reviews')
-    parser.add_argument('output_file', help='Path for JSON output file with themes')
+    # Print sample output
+    print("\nSample output row:")
+    print(final_df.iloc[0][['app_name', 'sentiment_label', 'themes']])
     
-    args = parser.parse_args()
-    
-    print("Bank Review Thematic Analysis")
-    print("=" * 50)
-    
-    try:
-        # Read cleaned data
-        df = pd.read_csv(args.input_file)
-        
-        if df.empty:
-            print("Error: Input file is empty!")
-            return
-        
-        # Perform thematic analysis
-        themes = analyze_themes(df)
-        
-        # Save results
-        import json
-        with open(args.output_file, 'w') as f:
-            json.dump(themes, f, indent=2)
-        
-        print(f"\nSuccess! Themes saved to {args.output_file}")
-        print("\nSample of identified themes:")
-        for bank, data in list(themes.items())[:2]:  # Show first 2 banks as sample
-            print(f"\nBank: {bank}")
-            print(f"Themes: {', '.join(data['themes'])}")
-            print("Example keywords:")
-            for theme, keywords in list(data['theme_keywords'].items())[:3]:  # Show first 3 themes
-                print(f"- {theme}: {', '.join(keywords[:3])}...")
-        
-    except Exception as e:
-        print(f"\nError during analysis: {e}")
+    print("\nSample theme clusters for first bank:")
+    first_bank = list(theme_reports.keys())[0]
+    for theme, keywords in list(theme_reports[first_bank].items())[:3]:
+        print(f"{theme}: {', '.join(keywords[:5])}...")
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_file', help='Path to input CSV file')
+    parser.add_argument('output_file', help='Path for output CSV file')
+    args = parser.parse_args()
+    
+    analyze_reviews(args.input_file, args.output_file)
