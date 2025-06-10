@@ -6,10 +6,9 @@ from textblob import TextBlob
 import numpy as np
 
 def compute_sentiment(df, method='textblob'):
-    df = compute_sentiment(df, method='distilbert')
+    
     """Compute sentiment scores using specified method"""
     if method == 'distilbert':
-        # Load DistilBERT sentiment analysis model
         sentiment_analyzer = pipeline(
             "sentiment-analysis",
             model="distilbert-base-uncased-finetuned-sst-2-english",
@@ -37,9 +36,9 @@ def compute_sentiment(df, method='textblob'):
             analysis = TextBlob(str(text))
             polarity = analysis.sentiment.polarity
             
-            if polarity > 0.1:
+            if polarity > 1.0 :
                 label = 'POSITIVE'
-            elif polarity < -0.1:
+            elif polarity < -1.0 :
                 label = 'NEGATIVE'
             else:
                 label = 'NEUTRAL'
