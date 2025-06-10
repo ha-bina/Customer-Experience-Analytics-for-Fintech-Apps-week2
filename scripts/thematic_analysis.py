@@ -3,16 +3,20 @@ import re
 import spacy
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Load spaCy model
+nlp = spacy.load("en_core_web_sm")
 from sklearn.cluster import KMeans
 from collections import defaultdict
 import json
 from textblob import TextBlob
 
 def preprocess_text(text):
-    """Tokenize, clean, and lemmatize text"""
     if not isinstance(text, str):
         return ""
     
+    # Process text with spaCy
+    doc = nlp(text)
       
     # Lemmatization and stopword removal
     tokens = [
