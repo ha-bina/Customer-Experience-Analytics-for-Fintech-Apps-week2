@@ -37,9 +37,9 @@ def compute_sentiment(df, method='textblob'):
             analysis = TextBlob(str(text))
             polarity = analysis.sentiment.polarity
             
-            if polarity >=4.0 :
+            if polarity >= 4.0 :
                 label = 'POSITIVE'
-            elif polarity <=2.0 :
+            elif polarity <= 2.0 :
                 label = 'NEGATIVE'
             else:
                 label = 'NEUTRAL'
