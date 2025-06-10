@@ -1,9 +1,32 @@
+#import dependencies
 import pandas as pd
-from datetime import datetime
-import re
-from transformers import pipeline
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+
+#for downloading data
+import kagglehub
+
+#sentiment analysis
 from textblob import TextBlob
-import numpy as np
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
+
+#keyword Extraction
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+#visuals
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
+# Download NLTK resources
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('punkt_tab')
 
 def compute_sentiment(df, method='textblob'):
     
