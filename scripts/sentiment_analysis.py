@@ -103,3 +103,69 @@ def analyze_reviews(input_file, output_file, sentiment_method='textblob'):
     except Exception as e:
         print(f"Error processing data: {e}")
         return None, None
+
+def train_and_evaluate_nb(df, text_col='processed_review', label_col='label'):
+    # Vectorize text
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform(df[text_col])
+    y = df[label_col]
+
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Train Naive Bayes
+    clf = MultinomialNB()
+    clf.fit(X_train, y_train)
+
+    # Predict and evaluate
+    y_pred = clf.predict(X_test)
+    print(f'Accuracy: {accuracy_score(y_test, y_pred):.4f}')
+    return clf, vectorizer
+def get_top_keywords(df, text_col='processed_review', max_features=100):
+    # Vectorize the dataset
+    vectorizer = TfidfVectorizer(max_features=max_features)
+    X = vectorizer.fit_transform(df[text_col])
+
+    # Get top keywords
+    keywords = vectorizer.get_feature_names_out()
+    print("Top Keywords:", keywords)
+    return keywords, X, vectorizer
+
+def extract_keywords_by_sentiment(df, sentiment_col='sentiment', text_col='processed_review', max_features=10):
+    # Filter positive and negative reviews
+    positive_reviews = df[df[sentiment_col] == 'positive'][text_col]
+    negative_reviews = df[df[sentiment_col] == 'negative'][text_col]
+
+    # Extract keywords from positive reviews
+    vectorizer_pos = TfidfVectorizer(max_features=max_features)
+    X_pos = vectorizer_pos.fit_transform(positive_reviews)
+    print("Top Keywords in Positive Reviews:", vectorizer_pos.get_feature_names_out())
+
+    # Extract keywords from negative reviews
+    vectorizer_neg = TfidfVectorizer(max_features=max_features)
+    X_neg = vectorizer_neg.fit_transform(negative_reviews)
+    print("Top Keywords in Negative Reviews:", vectorizer_neg.get_feature_names_out())
+
+    return {
+        'positive_keywords': vectorizer_pos.get_feature_names_out(),
+        'negative_keywords': vectorizer_neg.get_feature_names_out()
+    }
+def plot_positive_wordcloud(df, sentiment_col='sentiment', text_col='processed_review'):
+    """Plot a word cloud for positive reviews."""
+    positive_reviews = df[df[sentiment_col] == 'positive'][text_col]
+    positive_text = ' '.join(positive_reviews)
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(positive_text)
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    plt.title('Word Cloud for Positive Reviews')
+    plt.show()
+def plot_negative_wordcloud(df, sentiment_col='sentiment', text_col='processed_review'):
+    """Plot a word cloud for negative reviews."""
+    negative_reviews = df[df[sentiment_col] == 'negative'][text_col]
+    negative_text = ' '.join(negative_reviews)
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(negative_text)
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    plt.title('Word Cloud for Negative Reviews')
+    plt.show()
+    
