@@ -130,28 +130,28 @@ def analyze_reviews(input_file, output_file):
     final_df.to_csv(output_file, index=False)
     
     # Save theme reports
-    theme_file = output_file.replace('.csv', '_themes.json')
-    with open(theme_file, 'w') as f:
-        json.dump(theme_reports, f, indent=2)
+    #theme_file = output_file.replace('.csv', '_themes.json')
+    #with open(theme_file, 'w') as f:
+     #   json.dump(theme_reports, f, indent=2)
     
-    print(f"\nResults saved to:")
-    print(f"- Processed reviews: {output_file}")
-    print(f"- Theme analysis: {theme_file}")
+    #print(f"\nResults saved to:")
+   # print(f"- Processed reviews: {output_file}")
+    #print(f"- Theme analysis: {theme_file}")
     
     # Print sample output
-    print("\nSample output row:")
-    print(final_df.iloc[0][['app_name', 'sentiment_label', 'themes']])
+    #print("\nSample output row:")
+    #print(final_df.iloc[0][['app_name', 'sentiment_label', 'themes']])
     
-    print("\nSample theme clusters for first bank:")
-    first_bank = list(theme_reports.keys())[0]
-    for theme, keywords in list(theme_reports[first_bank].items())[:3]:
-        print(f"{theme}: {', '.join(keywords[:5])}...")
+   # print("\nSample theme clusters for first bank:")
+    #first_bank = list(theme_reports.keys())[0]
+    #for theme, keywords in list(theme_reports[first_bank].items())[:3]:
+     #   print(f"{theme}: {', '.join(keywords[:5])}...")
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('input_file', help='Path to input CSV file')
-    parser.add_argument('output_file', help='Path for output CSV file')
-    args = parser.parse_args()
+    #import argparse
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument('input_file', help='Path to input CSV file')
+    #parser.add_argument('output_file', help='Path for output CSV file')
+    #args = parser.parse_args()
     
-    analyze_reviews(args.input_file, args.output_file)
+    analyze_reviews(input_file, output_file)
