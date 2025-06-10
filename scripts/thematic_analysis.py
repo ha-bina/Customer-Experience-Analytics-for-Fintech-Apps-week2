@@ -3,6 +3,8 @@ import re
 import spacy
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
+# Make sure to run the following command in your terminal before running this script:
+# python -m spacy download en_core_web_sm
 
 # Load spaCy model
 nlp = spacy.load("en_core_web_sm")
