@@ -6,7 +6,7 @@ from textblob import TextBlob
 import numpy as np
 
 def compute_sentiment(df, method='textblob'):
-    df = compute_sentiment(df, method='distilbert')
+    
     """Compute sentiment scores using specified method"""
     if method == 'distilbert':
         # Load DistilBERT sentiment analysis model

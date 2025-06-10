@@ -13,10 +13,7 @@ def preprocess_text(text):
     if not isinstance(text, str):
         return ""
     
-    # Basic cleaning
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text.lower())
-    doc = nlp(text)
-    
+      
     # Lemmatization and stopword removal
     tokens = [
         token.lemma_.lower().strip() 
