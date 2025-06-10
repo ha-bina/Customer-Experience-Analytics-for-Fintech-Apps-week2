@@ -9,7 +9,6 @@ def compute_sentiment(df, method='textblob'):
     
     """Compute sentiment scores using specified method"""
     if method == 'distilbert':
-        # Load DistilBERT sentiment analysis model
         sentiment_analyzer = pipeline(
             "sentiment-analysis",
             model="distilbert-base-uncased-finetuned-sst-2-english",
@@ -37,9 +36,9 @@ def compute_sentiment(df, method='textblob'):
             analysis = TextBlob(str(text))
             polarity = analysis.sentiment.polarity
             
-            if polarity >= 4.0 :
+            if polarity > 1.0 :
                 label = 'POSITIVE'
-            elif polarity <= 2.0 :
+            elif polarity < -1.0 :
                 label = 'NEGATIVE'
             else:
                 label = 'NEUTRAL'
