@@ -173,6 +173,25 @@ def extract_keywords_by_sentiment(df, sentiment_col='sentiment', text_col='proce
         'positive_keywords': vectorizer_pos.get_feature_names_out(),
         'negative_keywords': vectorizer_neg.get_feature_names_out()
     }
+def add_sentiment_column(df, sentiment_col='sentiment', text_col='review_text', output_file='Ethiopian_banks_review_cleaned_with_sentiment.csv'):
+    """Add sentiment column using TextBlob if not present, and save to a new file."""
+    if sentiment_col not in df.columns:
+        from textblob import TextBlob
+        def get_sentiment(text):
+            polarity = TextBlob(str(text)).sentiment.polarity
+            if polarity > 0:
+                return 'positive'
+            elif polarity < 0:
+                return 'negative'
+            else:
+                return 'neutral'
+        df[sentiment_col] = df[text_col].apply(get_sentiment)
+        df.to_csv(output_file, index=False)
+        print(f"Sentiment column added and saved to {output_file}")
+    else:
+        print(f"'{sentiment_col}' column already exists.")
+    return df
+
 def plot_positive_wordcloud(df, sentiment_col='sentiment', text_col='review_text'):
     """Plot a word cloud for positive reviews."""
     if sentiment_col not in df.columns:
