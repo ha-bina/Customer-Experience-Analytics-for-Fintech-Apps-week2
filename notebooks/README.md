@@ -1,6 +1,6 @@
 # Customer Experience Analytics for Fintech Apps
 
-This project collects, cleans, analyzes, and stores customer reviews for Ethiopian banking apps from Google Play.
+This project collects, cleans, analyzes, and visualizes customer reviews for Ethiopian banking apps from Google Play. It includes sentiment analysis, thematic analysis, and database storage.
 
 ## Project Structure
 
@@ -14,10 +14,12 @@ customer-experience-analytics-for-fintech-apps-week2/
 │   ├── thematic_analysis.py    # Thematic clustering and analysis
 │   └── ...
 ├── notebooks/
+│   ├── Customer_experiance_analysis.ipynb  # Main analysis notebook
 │   ├── data collection and preprocessing.ipynb
 │   └── database_creation.py    # Creates SQLite DB and inserts cleaned data
 ├── Ethiopian_bank_reviews.csv              # Raw collected reviews
 ├── Ethiopian_banks_review_cleaned.csv      # Cleaned review data
+├── sentiment_analysis_aggregated.csv       # Sentiment aggregation results
 ├── bank_reviews.db                         # SQLite database
 └── README.md
 ```
@@ -27,7 +29,7 @@ customer-experience-analytics-for-fintech-apps-week2/
 1. **Clone the repository**
 2. **Install dependencies**
    ```
-   pip install pandas tqdm google-play-scraper scikit-learn nltk textblob spacy wordcloud torch transformers
+   pip install pandas tqdm google-play-scraper scikit-learn nltk textblob spacy wordcloud torch transformers matplotlib
    python -m spacy download en_core_web_sm
    ```
 
@@ -49,20 +51,39 @@ python scripts/data_cleaner.py
 ```
 This creates `Ethiopian_banks_review_cleaned.csv`.
 
-### 3. Analyze Data
+### 3. Sentiment Analysis
 
-Open and run the notebook:
+Run:
 ```
-notebooks/data collection and preprocessing.ipynb
+python scripts/sentiment_analysis.py
+```
+Or use the provided notebook for step-by-step analysis and visualization.
+
+### 4. Thematic Analysis
+
+Run:
+```
+python scripts/thematic_analysis.py
 ```
 
-### 4. Create Database and Insert Data
+### 5. Database Creation
 
 Run:
 ```
 python notebooks/database_creation.py
 ```
 This creates `bank_reviews.db` and inserts the cleaned reviews.
+
+### 6. Visualization
+
+Open and run the notebook:
+```
+notebooks/Customer_experiance_analysis.ipynb
+```
+This notebook includes:
+- Sentiment distribution plots per app and per rating group
+- Word clouds for positive/negative reviews
+- Grouped bar charts for selected banks
 
 ## Database Schema
 
@@ -73,5 +94,5 @@ This creates `bank_reviews.db` and inserts the cleaned reviews.
 
 - Edit `BANK_APPS` in `data_collection.py` to add/remove apps.
 - Change `REVIEWS_PER_APP` to adjust review count per app.
-
+- Adjust plotting code in the notebook for different visualizations.
 
