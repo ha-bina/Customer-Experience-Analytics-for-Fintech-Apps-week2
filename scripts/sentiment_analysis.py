@@ -99,7 +99,14 @@ def aggregate_sentiment(df):
     })
     
     return grouped
-
+def parse_distribution(dist):
+    # Example input: "positive:10,neutral:5,negative:2"
+    parts = dict(item.split(':') for item in dist.split(','))
+    return pd.Series({
+        'positive': int(parts.get('positive', 0)),
+        'neutral': int(parts.get('neutral', 0)),
+        'negative': int(parts.get('negative', 0))
+    })
 def analyze_reviews(input_file, output_file, sentiment_method='textblob'):
     """Main function to process reviews"""
     try:
@@ -111,7 +118,7 @@ def analyze_reviews(input_file, output_file, sentiment_method='textblob'):
         
         # Aggregate results
         aggregated = aggregate_sentiment(df)
-        
+        parse_distribution = lambda x: pd.Series(parse_distribution(x))
         # Save results
         df.to_csv(output_file, index=False)
         agg_output_file = output_file.replace('.csv', '_aggregated.csv')

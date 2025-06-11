@@ -82,7 +82,7 @@ def analyze_reviews(input_file, output_file):
     df['processed_text'] = df['review_text'].apply(preprocess_text)
     df = df[df['processed_text'].str.len() > 0]  # Remove empty texts
     
-    # Sentiment analysis (using TextBlob as example)
+    # Sentiment analysis (using TextBlob )
     def get_sentiment(text):
         analysis = TextBlob(text)
         polarity = analysis.sentiment.polarity
