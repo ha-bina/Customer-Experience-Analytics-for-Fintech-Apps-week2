@@ -173,15 +173,33 @@ def extract_keywords_by_sentiment(df, sentiment_col='sentiment', text_col='proce
         'positive_keywords': vectorizer_pos.get_feature_names_out(),
         'negative_keywords': vectorizer_neg.get_feature_names_out()
     }
-def plot_positive_wordcloud(df, sentiment_col='review_text', text_col='review_text'):
+def plot_positive_wordcloud(df, sentiment_col='sentiment', text_col='review_text'):
     """Plot a word cloud for positive reviews."""
-    positive_reviews = df[df[sentiment_col] == 'positive'][text_col]
-    positive_text = ' '.join(positive_reviews)
-    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(positive_text)
-    plt.imshow(wordcloud, interpolation='bilinear')
-    plt.axis('off')
-    plt.title('Word Cloud for Positive Reviews')
-    plt.show()
+    if sentiment_col not in df.columns:
+        # Fallback: Use TextBlob to add sentiment column if missing
+        from textblob import TextBlob
+        def get_sentiment(text):
+            polarity = TextBlob(str(text)).sentiment.polarity
+            if polarity > 0:
+                return 'positive'
+            elif polarity < 0:
+                return 'negative'
+            else:
+                return 'neutral'
+        df[sentiment_col] = df[text_col].apply(get_sentiment)
+        df.to_csv('Ethiopian_banks_review_cleaned_with_sentiment.csv', index=False)
+
+    # Check if there are positive reviews before plotting
+    if (df[sentiment_col] == 'positive').sum() > 0:
+        positive_reviews = df[df[sentiment_col] == 'positive'][text_col]
+        positive_text = ' '.join(positive_reviews)
+        wordcloud = WordCloud(width=800, height=400, background_color='white').generate(positive_text)
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis('off')
+        plt.title('Word Cloud for Positive Reviews')
+        plt.show()
+    else:
+        print("No positive reviews to plot.")
 def plot_negative_wordcloud(df, sentiment_col='review_text', text_col='review_text'):
     """Plot a word cloud for negative reviews."""
     negative_reviews = df[df[sentiment_col] == 'negative'][text_col]
