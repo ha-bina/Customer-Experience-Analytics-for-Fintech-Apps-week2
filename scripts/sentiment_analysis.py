@@ -173,7 +173,7 @@ def extract_keywords_by_sentiment(df, sentiment_col='sentiment', text_col='proce
         'positive_keywords': vectorizer_pos.get_feature_names_out(),
         'negative_keywords': vectorizer_neg.get_feature_names_out()
     }
-def plot_positive_wordcloud(df, sentiment_col='sentiment', text_col='processed_review'):
+def plot_positive_wordcloud(df, sentiment_col='review_text', text_col='review_text'):
     """Plot a word cloud for positive reviews."""
     positive_reviews = df[df[sentiment_col] == 'positive'][text_col]
     positive_text = ' '.join(positive_reviews)
@@ -182,7 +182,7 @@ def plot_positive_wordcloud(df, sentiment_col='sentiment', text_col='processed_r
     plt.axis('off')
     plt.title('Word Cloud for Positive Reviews')
     plt.show()
-def plot_negative_wordcloud(df, sentiment_col='sentiment', text_col='processed_review'):
+def plot_negative_wordcloud(df, sentiment_col='review_text', text_col='review_text'):
     """Plot a word cloud for negative reviews."""
     negative_reviews = df[df[sentiment_col] == 'negative'][text_col]
     negative_text = ' '.join(negative_reviews)
